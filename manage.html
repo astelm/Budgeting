@@ -1,0 +1,68 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manage Budget Structure</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="manage-page">
+    <article class="entry-card">
+      <div class="page-actions">
+        <a class="nav-link" href="index.html">Back To Dashboard</a>
+      </div>
+
+      <h1>Manage Categories & Sections</h1>
+
+      <div class="admin-grid">
+        <div class="admin-block">
+          <h2>Sections</h2>
+          <div class="admin-row">
+            <input id="newSectionName" type="text" placeholder="New section name">
+            <button id="addSectionBtn" type="button">Add Section</button>
+          </div>
+          <div class="admin-row">
+            <select id="removeSectionSelect"></select>
+            <button id="removeSectionBtn" type="button">Remove Section</button>
+          </div>
+          <p id="sectionMessage" class="hint-text"></p>
+        </div>
+
+        <div class="admin-block">
+          <h2>Categories</h2>
+          <div class="new-category-row">
+            <input id="newCategoryName" type="text" placeholder="New category name">
+            <select id="newCategoryType">
+              <option value="expense">Expense</option>
+              <option value="income">Income</option>
+            </select>
+            <select id="newCategorySection"></select>
+            <button id="addCategoryBtn" type="button">Add Category</button>
+          </div>
+
+          <div class="admin-row">
+            <select id="categorySectionFilter"></select>
+          </div>
+
+          <div class="admin-row category-rename-row">
+            <select id="categoryManageSelect"></select>
+            <input id="renameCategoryInput" type="text" placeholder="New expense category name">
+            <button id="renameCategoryBtn" type="button">Rename</button>
+          </div>
+          <div class="admin-row">
+            <select id="removeCategorySelect"></select>
+            <button id="removeCategoryBtn" type="button">Remove</button>
+          </div>
+          <p id="categoryMessage" class="hint-text"></p>
+        </div>
+      </div>
+    </article>
+  </main>
+
+  <script src="manage.js"></script>
+</body>
+</html>
