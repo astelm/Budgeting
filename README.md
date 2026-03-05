@@ -1,19 +1,34 @@
-﻿# Expense Tracker
+# Expense Tracker
 
-A simple project to track expenses with manual entry and expense categories.
+Backend-first budget tracker with Express API and vanilla JS frontend.
 
 ## Features
-- Manually add an expense (title, amount, category, date)
-- Default categories included
-- Add your own custom categories
-- View all expenses in a table
-- Delete an expense
-- Total amount and totals per category
-- Data is saved in browser local storage
+- Add/delete entries (income and expense)
+- Manage sections and categories
+- Budget/actual/difference calculations on the backend
+- Monobank exchange rates fetched and cached on the backend
+- JSON-file persistence via repository interface (DB-ready)
 
 ## Run
-Open `index.html` in your browser.
+1. Install dependencies:
+   - `npm install`
+2. Start server:
+   - `npm start`
+3. Open dashboard:
+   - [http://localhost:3000/index.html](http://localhost:3000/index.html)
 
-## Notes
-- Currency format is USD by default (`en-US`).
-- Data is local to your browser profile.
+## API
+- `GET /api/bootstrap?year=YYYY&month=MM`
+- `POST /api/entries`
+- `DELETE /api/entries/:id`
+- `PATCH /api/categories/:id/budget`
+- `POST /api/categories`
+- `PATCH /api/categories/:id`
+- `DELETE /api/categories/:id`
+- `POST /api/sections`
+- `DELETE /api/sections/:id`
+- `GET /api/exchange-rates`
+- `POST /api/exchange-rates/refresh`
+
+## Tests
+- `npm test`

@@ -1,38 +1,3 @@
-﻿const defaultSections = [
-  { id: "income", name: "INCOME" },
-  { id: "fixed", name: "FIXED BILLS" },
-  { id: "variable", name: "VARIABLE BILLS" },
-  { id: "savings", name: "SAVINGS" },
-  { id: "subscriptions", name: "SUBSCRIPTIONS" },
-  { id: "personal", name: "PERSONAL" }
-];
-
-const defaultCategories = [
-  { name: "Paycheck1", type: "income", sectionId: "income", budget: 2500 },
-  { name: "Paycheck2", type: "income", sectionId: "income", budget: 2500 },
-  { name: "Gift", type: "income", sectionId: "income", budget: 0 },
-  { name: "Rent", type: "expense", sectionId: "fixed", budget: 1200 },
-  { name: "Internet", type: "expense", sectionId: "fixed", budget: 80 },
-  { name: "Phone", type: "expense", sectionId: "fixed", budget: 55 },
-  { name: "Groceries", type: "expense", sectionId: "variable", budget: 550 },
-  { name: "Gas", type: "expense", sectionId: "variable", budget: 220 },
-  { name: "Dining Out", type: "expense", sectionId: "variable", budget: 220 },
-  { name: "Entertainment", type: "expense", sectionId: "variable", budget: 170 },
-  { name: "Other", type: "expense", sectionId: "variable", budget: 140 },
-  { name: "Emergency Fund", type: "expense", sectionId: "savings", budget: 300 },
-  { name: "Retirement", type: "expense", sectionId: "savings", budget: 300 },
-  { name: "Netflix", type: "expense", sectionId: "subscriptions", budget: 16 },
-  { name: "YouTube", type: "expense", sectionId: "subscriptions", budget: 13 },
-  { name: "Education", type: "expense", sectionId: "personal", budget: 160 },
-  { name: "Gifts", type: "expense", sectionId: "personal", budget: 130 }
-];
-
-const keys = {
-  entries: "budget_tracker_entries_v2",
-  categories: "budget_tracker_categories_v2",
-  sections: "budget_tracker_sections_v3"
-};
-
 const addCategoryBtn = document.getElementById("addCategoryBtn");
 const newCategoryName = document.getElementById("newCategoryName");
 const newCategoryType = document.getElementById("newCategoryType");
@@ -53,147 +18,84 @@ const removeCategoryBtn = document.getElementById("removeCategoryBtn");
 const sectionMessage = document.getElementById("sectionMessage");
 const categoryMessage = document.getElementById("categoryMessage");
 
-let entries = load(keys.entries, []);
-let sections = load(keys.sections, defaultSections);
-let categories = normalizeCategories(load(keys.categories, defaultCategories));
-
-migrateLegacyCategories();
-renderAdminSelects();
+let appState = null;
 
 newCategoryType.addEventListener("change", renderAdminSelects);
 categorySectionFilter.addEventListener("change", renderExpenseCategorySelects);
 
-addCategoryBtn.addEventListener("click", () => {
+addCategoryBtn.addEventListener("click", async () => {
   const name = newCategoryName.value.trim();
   const type = newCategoryType.value;
-  let sectionId = newCategorySection.value;
+  const sectionId = newCategorySection.value;
 
-  if (!name) {
-    setCategoryMessage("Category name is required.");
-    return;
-  }
-
-  if (!sectionId) {
-    sectionId = type === "income" ? findSectionIdByName("income") : findSectionIdByName("variable");
-  }
-
-  const exists = categories.some((item) => item.name.toLowerCase() === name.toLowerCase() && item.type === type);
-  if (exists) {
-    setCategoryMessage("Category with this name already exists for the selected type.");
-    return;
-  }
-
-  categories.push({ name, type, sectionId, budget: 0 });
-  categories.sort((a, b) => a.name.localeCompare(b.name));
-  save(keys.categories, categories);
-  newCategoryName.value = "";
-  setCategoryMessage("Category added.");
-  renderAdminSelects();
+  await withApiHandling(async () => {
+    await window.BudgetApi.createCategory({ name, type, sectionId });
+    newCategoryName.value = "";
+    setCategoryMessage("Category added.");
+    await reload();
+  });
 });
 
-addSectionBtn.addEventListener("click", () => {
+addSectionBtn.addEventListener("click", async () => {
   const name = newSectionName.value.trim();
-  if (!name) {
-    setSectionMessage("Section name is required.");
-    return;
-  }
 
-  const exists = sections.some((s) => s.name.toLowerCase() === name.toLowerCase());
-  if (exists) {
-    setSectionMessage("Section with this name already exists.");
-    return;
-  }
-
-  sections.push({ id: slugify(name), name: name.toUpperCase() });
-  save(keys.sections, sections);
-  newSectionName.value = "";
-  setSectionMessage("Section added.");
-  renderAdminSelects();
+  await withApiHandling(async () => {
+    await window.BudgetApi.createSection(name);
+    newSectionName.value = "";
+    setSectionMessage("Section added.");
+    await reload();
+  });
 });
 
-removeSectionBtn.addEventListener("click", () => {
+removeSectionBtn.addEventListener("click", async () => {
   const sectionId = removeSectionSelect.value;
-  if (!sectionId) {
-    setSectionMessage("Select a section to remove.");
-    return;
-  }
 
-  if (categories.some((c) => c.sectionId === sectionId)) {
-    setSectionMessage("Cannot remove section with existing categories.");
-    return;
-  }
-
-  sections = sections.filter((s) => s.id !== sectionId);
-  save(keys.sections, sections);
-  setSectionMessage("Section removed.");
-  renderAdminSelects();
+  await withApiHandling(async () => {
+    await window.BudgetApi.deleteSection(sectionId);
+    setSectionMessage("Section removed.");
+    await reload();
+  });
 });
 
-renameCategoryBtn.addEventListener("click", () => {
-  const selected = categoryManageSelect.value;
-  const newName = renameCategoryInput.value.trim();
-  if (!selected || !newName) {
-    setCategoryMessage("Select a category and provide a new name.");
-    return;
-  }
+renameCategoryBtn.addEventListener("click", async () => {
+  const categoryId = categoryManageSelect.value;
+  const name = renameCategoryInput.value.trim();
 
-  const category = findExpenseCategoryByToken(selected);
-  if (!category) {
-    setCategoryMessage("Category not found.");
-    return;
-  }
-
-  const conflict = categories.some((c) => c !== category && c.type === "expense" && c.name.toLowerCase() === newName.toLowerCase());
-  if (conflict) {
-    setCategoryMessage("Expense category with this name already exists.");
-    return;
-  }
-
-  const oldName = category.name;
-  category.name = newName;
-  entries = entries.map((entry) => (entry.type === "expense" && entry.category === oldName ? { ...entry, category: newName } : entry));
-
-  save(keys.categories, categories);
-  save(keys.entries, entries);
-  renameCategoryInput.value = "";
-  setCategoryMessage("Category renamed.");
-  renderAdminSelects();
+  await withApiHandling(async () => {
+    await window.BudgetApi.updateCategory(categoryId, { name });
+    renameCategoryInput.value = "";
+    setCategoryMessage("Category renamed.");
+    await reload();
+  });
 });
 
-removeCategoryBtn.addEventListener("click", () => {
-  const selected = removeCategorySelect.value;
-  if (!selected) {
-    setCategoryMessage("Select a category to remove.");
-    return;
-  }
+removeCategoryBtn.addEventListener("click", async () => {
+  const categoryId = removeCategorySelect.value;
 
-  const category = findExpenseCategoryByToken(selected);
-  if (!category) {
-    setCategoryMessage("Category not found.");
-    return;
-  }
-
-  const fallback = ensureFallbackExpenseCategory(category.sectionId);
-  if (fallback && fallback.name === category.name && categories.filter((c) => c.type === "expense").length === 1) {
-    setCategoryMessage("At least one expense category must remain.");
-    return;
-  }
-
-  categories = categories.filter((c) => !(c.type === "expense" && c.name === category.name && c.sectionId === category.sectionId));
-  entries = entries.map((entry) => (entry.type === "expense" && entry.category === category.name ? { ...entry, category: fallback.name } : entry));
-
-  save(keys.categories, categories);
-  save(keys.entries, entries);
-  setCategoryMessage(`Category removed. Existing expenses moved to "${fallback.name}".`);
-  renderAdminSelects();
+  await withApiHandling(async () => {
+    const result = await window.BudgetApi.deleteCategory(categoryId);
+    if (result && result.fallbackCategoryName) {
+      setCategoryMessage(`Category removed. Existing expenses moved to "${result.fallbackCategoryName}".`);
+    } else {
+      setCategoryMessage("Category removed.");
+    }
+    await reload();
+  });
 });
 
 function renderAdminSelects() {
+  if (!appState) {
+    return;
+  }
+
   const typeForNewCategory = newCategoryType.value;
-  const possibleSections = sections.filter((section) => {
-    const wantsIncome = typeForNewCategory === "income";
-    const isIncomeSection = section.id === findSectionIdByName("income") || section.name.toLowerCase().includes("income");
-    return wantsIncome ? isIncomeSection : !isIncomeSection;
+  const incomeSection = appState.sections.find((section) => section.id === "income" || section.name.toLowerCase().includes("income"));
+
+  const possibleSections = appState.sections.filter((section) => {
+    if (typeForNewCategory === "income") {
+      return incomeSection ? section.id === incomeSection.id : true;
+    }
+    return !incomeSection || section.id !== incomeSection.id;
   });
 
   newCategorySection.innerHTML = "";
@@ -205,28 +107,30 @@ function renderAdminSelects() {
   });
 
   removeSectionSelect.innerHTML = "";
-  sections.forEach((section) => {
+  appState.sections.forEach((section) => {
+    const count = appState.categories.filter((category) => category.sectionId === section.id).length;
     const option = document.createElement("option");
     option.value = section.id;
-    option.textContent = `${section.name} (${categories.filter((c) => c.sectionId === section.id).length})`;
+    option.textContent = `${section.name} (${count})`;
     removeSectionSelect.appendChild(option);
   });
 
   const currentFilter = categorySectionFilter.value;
   categorySectionFilter.innerHTML = "";
+
   const allOption = document.createElement("option");
   allOption.value = "all";
   allOption.textContent = "All Sections";
   categorySectionFilter.appendChild(allOption);
 
-  sections.forEach((section) => {
+  appState.sections.forEach((section) => {
     const option = document.createElement("option");
     option.value = section.id;
     option.textContent = section.name;
     categorySectionFilter.appendChild(option);
   });
 
-  categorySectionFilter.value = currentFilter && [...categorySectionFilter.options].some((o) => o.value === currentFilter)
+  categorySectionFilter.value = currentFilter && [...categorySectionFilter.options].some((option) => option.value === currentFilter)
     ? currentFilter
     : "all";
 
@@ -234,29 +138,32 @@ function renderAdminSelects() {
 }
 
 function renderExpenseCategorySelects() {
+  if (!appState) {
+    return;
+  }
+
   const sectionFilter = categorySectionFilter.value || "all";
-  const expenseCategories = categories
-    .filter((c) => c.type === "expense" && (sectionFilter === "all" || c.sectionId === sectionFilter))
+  const expenseCategories = appState.categories
+    .filter((category) => category.type === "expense" && (sectionFilter === "all" || category.sectionId === sectionFilter))
     .sort((a, b) => a.name.localeCompare(b.name));
 
   categoryManageSelect.innerHTML = "";
   removeCategorySelect.innerHTML = "";
 
   expenseCategories.forEach((category) => {
-    const section = sections.find((s) => s.id === category.sectionId);
-    const token = `${category.sectionId}::${category.name}`;
+    const section = appState.sections.find((item) => item.id === category.sectionId);
     const label = `${category.name} (${section ? section.name : category.sectionId})`;
 
-    const o1 = document.createElement("option");
-    o1.value = token;
-    o1.textContent = label;
+    const optionA = document.createElement("option");
+    optionA.value = category.id;
+    optionA.textContent = label;
 
-    const o2 = document.createElement("option");
-    o2.value = token;
-    o2.textContent = label;
+    const optionB = document.createElement("option");
+    optionB.value = category.id;
+    optionB.textContent = label;
 
-    categoryManageSelect.appendChild(o1);
-    removeCategorySelect.appendChild(o2);
+    categoryManageSelect.appendChild(optionA);
+    removeCategorySelect.appendChild(optionB);
   });
 
   if (expenseCategories.length === 0) {
@@ -268,44 +175,22 @@ function renderExpenseCategorySelects() {
   }
 }
 
-function findExpenseCategoryByToken(token) {
-  const [sectionId, name] = token.split("::");
-  return categories.find((c) => c.type === "expense" && c.sectionId === sectionId && c.name === name);
+async function reload() {
+  const now = new Date();
+  appState = await window.BudgetApi.getBootstrap(now.getFullYear(), now.getMonth() + 1);
+  renderAdminSelects();
 }
 
-function ensureFallbackExpenseCategory(sectionId) {
-  let fallback = categories.find((c) => c.type === "expense" && c.sectionId === sectionId && c.name === "Other");
-  if (fallback) return fallback;
-
-  fallback = { name: "Other", type: "expense", sectionId: sectionId || findSectionIdByName("variable"), budget: 0 };
-  categories.push(fallback);
-  save(keys.categories, categories);
-  return fallback;
-}
-
-function findSectionIdByName(hint) {
-  const found = sections.find((s) => s.id === hint || s.name.toLowerCase().includes(hint.toLowerCase()));
-  return found ? found.id : (sections[0] ? sections[0].id : "");
-}
-
-function migrateLegacyCategories() {
-  categories = categories.map((c) => (c.sectionId ? c : { ...c, sectionId: c.group || findSectionIdByName("variable") }));
-  save(keys.categories, categories);
-}
-
-function normalizeCategories(list) {
-  return list.map((item) => ({ ...item, budget: Number(item.budget) || 0 }));
-}
-
-function slugify(value) {
-  const base = value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "section";
-  let candidate = base;
-  let i = 1;
-  while (sections.some((s) => s.id === candidate)) {
-    candidate = `${base}-${i}`;
-    i += 1;
+async function withApiHandling(action) {
+  try {
+    await action();
+  } catch (error) {
+    if (String(error.message || "").toLowerCase().includes("section")) {
+      setSectionMessage(error.message);
+    } else {
+      setCategoryMessage(error.message);
+    }
   }
-  return candidate;
 }
 
 function setSectionMessage(message) {
@@ -316,15 +201,6 @@ function setCategoryMessage(message) {
   categoryMessage.textContent = message;
 }
 
-function save(key, value) {
-  localStorage.setItem(key, JSON.stringify(value));
-}
-
-function load(key, fallback) {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : fallback;
-  } catch {
-    return fallback;
-  }
-}
+reload().catch((error) => {
+  setCategoryMessage(error.message);
+});

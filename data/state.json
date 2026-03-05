@@ -1,0 +1,155 @@
+{
+  "entries": [],
+  "sections": [
+    {
+      "id": "income",
+      "name": "INCOME"
+    },
+    {
+      "id": "fixed",
+      "name": "FIXED BILLS"
+    },
+    {
+      "id": "variable",
+      "name": "VARIABLE BILLS"
+    },
+    {
+      "id": "savings",
+      "name": "SAVINGS"
+    },
+    {
+      "id": "subscriptions",
+      "name": "SUBSCRIPTIONS"
+    },
+    {
+      "id": "personal",
+      "name": "PERSONAL"
+    }
+  ],
+  "categories": [
+    {
+      "id": "income-paycheck1",
+      "name": "Paycheck1",
+      "type": "income",
+      "sectionId": "income",
+      "budget": 2500
+    },
+    {
+      "id": "income-paycheck2",
+      "name": "Paycheck2",
+      "type": "income",
+      "sectionId": "income",
+      "budget": 2500
+    },
+    {
+      "id": "income-gift",
+      "name": "Gift",
+      "type": "income",
+      "sectionId": "income",
+      "budget": 0
+    },
+    {
+      "id": "expense-rent",
+      "name": "Rent",
+      "type": "expense",
+      "sectionId": "fixed",
+      "budget": 1200
+    },
+    {
+      "id": "expense-internet",
+      "name": "Internet",
+      "type": "expense",
+      "sectionId": "fixed",
+      "budget": 80
+    },
+    {
+      "id": "expense-phone",
+      "name": "Phone",
+      "type": "expense",
+      "sectionId": "fixed",
+      "budget": 55
+    },
+    {
+      "id": "expense-groceries",
+      "name": "Groceries",
+      "type": "expense",
+      "sectionId": "variable",
+      "budget": 550
+    },
+    {
+      "id": "expense-gas",
+      "name": "Gas",
+      "type": "expense",
+      "sectionId": "variable",
+      "budget": 220
+    },
+    {
+      "id": "expense-dining-out",
+      "name": "Dining Out",
+      "type": "expense",
+      "sectionId": "variable",
+      "budget": 220
+    },
+    {
+      "id": "expense-entertainment",
+      "name": "Entertainment",
+      "type": "expense",
+      "sectionId": "variable",
+      "budget": 170
+    },
+    {
+      "id": "expense-other",
+      "name": "Other",
+      "type": "expense",
+      "sectionId": "variable",
+      "budget": 140
+    },
+    {
+      "id": "expense-emergency-fund",
+      "name": "Emergency Fund",
+      "type": "expense",
+      "sectionId": "savings",
+      "budget": 300
+    },
+    {
+      "id": "expense-retirement",
+      "name": "Retirement",
+      "type": "expense",
+      "sectionId": "savings",
+      "budget": 300
+    },
+    {
+      "id": "expense-netflix",
+      "name": "Netflix",
+      "type": "expense",
+      "sectionId": "subscriptions",
+      "budget": 16
+    },
+    {
+      "id": "expense-youtube",
+      "name": "YouTube",
+      "type": "expense",
+      "sectionId": "subscriptions",
+      "budget": 13
+    },
+    {
+      "id": "expense-education",
+      "name": "Education",
+      "type": "expense",
+      "sectionId": "personal",
+      "budget": 160
+    },
+    {
+      "id": "expense-gifts",
+      "name": "Gifts",
+      "type": "expense",
+      "sectionId": "personal",
+      "budget": 130
+    }
+  ],
+  "exchangeCache": {
+    "rows": [],
+    "fetchedAt": 0,
+    "updatedAt": null
+  }
+}
