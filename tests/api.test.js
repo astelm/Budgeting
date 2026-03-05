@@ -52,6 +52,22 @@ test("bootstrap returns expected shape", async () => {
   );
 });
 
+test("healthz returns ok", async () => {
+  await withServer(
+    {
+      sections: [{ id: "variable", name: "VARIABLE" }],
+      categories: [{ id: "c-food", name: "Food", type: "expense", sectionId: "variable", budget: 200 }],
+      entries: [],
+      exchangeCache: { rows: [], fetchedAt: 0, updatedAt: null }
+    },
+    async (request) => {
+      const response = await request("GET", "/healthz");
+      assert.equal(response.status, 200);
+      assert.equal(response.body.status, "ok");
+    }
+  );
+});
+
 test("entry validation returns normalized error payload", async () => {
   await withServer(
     {
@@ -99,4 +115,3 @@ test("category CRUD endpoints work", async () => {
     }
   );
 });
-

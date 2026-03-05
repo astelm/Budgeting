@@ -1,9 +1,19 @@
 const { createApp } = require("./app");
 
-const PORT = Number(process.env.PORT || 3000);
-const { app } = createApp();
+async function start() {
+  const PORT = Number(process.env.PORT || 3000);
+  const { app, repository } = createApp();
 
-app.listen(PORT, () => {
+  await repository.healthCheck();
+
+  app.listen(PORT, () => {
+    // eslint-disable-next-line no-console
+    console.log(`Budgeting server running on http://localhost:${PORT}`);
+  });
+}
+
+start().catch((error) => {
   // eslint-disable-next-line no-console
-  console.log(`Budgeting server running on http://localhost:${PORT}`);
+  console.error("Failed to start server:", error.message);
+  process.exit(1);
 });

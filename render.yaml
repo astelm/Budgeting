@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: budgeting-app
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: STORAGE_DRIVER
+        value: postgres
+      - key: DATABASE_URL
+        fromDatabase:
+          name: budgeting-postgres
+          property: connectionString
+
+databases:
+  - name: budgeting-postgres
+    plan: free
