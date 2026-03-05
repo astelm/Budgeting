@@ -46,6 +46,23 @@ function normalizeState(state) {
       }).filter((entry) => entry.date && entry.category && entry.description && entry.amount > 0)
     : [];
 
+  const categoryBudgets = Array.isArray(safe.categoryBudgets)
+    ? safe.categoryBudgets
+      .map((item) => ({
+        categoryId: String(item.categoryId || "").trim(),
+        monthKey: String(item.monthKey || "").trim(),
+        budget: Number(item.budget),
+        changedAt: item.changedAt ? String(item.changedAt) : null
+      }))
+      .filter((item) => item.categoryId && /^\d{4}-\d{2}$/.test(item.monthKey) && Number.isFinite(item.budget) && item.budget >= 0)
+      .map((item) => ({
+        categoryId: item.categoryId,
+        monthKey: item.monthKey,
+        budget: Number(item.budget.toFixed(2)),
+        changedAt: item.changedAt
+      }))
+    : [];
+
   const exchangeCache = safe.exchangeCache && typeof safe.exchangeCache === "object"
     ? {
         rows: Array.isArray(safe.exchangeCache.rows) ? safe.exchangeCache.rows : [],
@@ -58,6 +75,7 @@ function normalizeState(state) {
     entries,
     sections,
     categories,
+    categoryBudgets,
     exchangeCache
   };
 }

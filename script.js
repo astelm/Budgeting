@@ -18,7 +18,7 @@ let selectedYear = now.getFullYear();
 let selectedMonth = now.getMonth() + 1;
 let appState = null;
 
-dateInput.value = new Date().toISOString().split("T")[0];
+dateInput.value = formatLocalDate(getDefaultDateForMonth(selectedYear, selectedMonth));
 
 yearSelect.addEventListener("change", async () => {
   selectedYear = Number(yearSelect.value) || selectedYear;
@@ -58,7 +58,7 @@ entryForm.addEventListener("submit", async (event) => {
   await withApiHandling(async () => {
     await window.BudgetApi.createEntry(payload);
     entryForm.reset();
-    dateInput.value = new Date().toISOString().split("T")[0];
+    dateInput.value = formatLocalDate(getDefaultDateForMonth(selectedYear, selectedMonth));
     typeInput.value = payload.type;
     await reloadAndRender();
   });
@@ -78,7 +78,7 @@ board.addEventListener("change", async (event) => {
   }
 
   await withApiHandling(async () => {
-    await window.BudgetApi.updateCategoryBudget(categoryId, value);
+    await window.BudgetApi.updateCategoryBudget(categoryId, value, appState.selected.monthKey);
     await reloadAndRender();
   });
 });
@@ -260,6 +260,7 @@ async function reloadAndRender() {
 
   renderYearOptions();
   renderMonthButtons();
+  syncDateInputWithSelectedMonth();
   renderBoard();
   renderTransactions();
   renderEntryCategorySelect();
@@ -320,6 +321,43 @@ function formatDate(value) {
   }
 
   return `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}.${d.getFullYear()}`;
+}
+
+function formatLocalDate(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function getDefaultDateForMonth(year, month) {
+  const today = new Date();
+  const isCurrentMonth = today.getFullYear() === year && today.getMonth() + 1 === month;
+  const day = isCurrentMonth ? today.getDate() : 1;
+  return new Date(year, month - 1, day);
+}
+
+function parseDateParts(value) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || ""));
+  if (!match) {
+    return null;
+  }
+
+  return {
+    year: Number(match[1]),
+    month: Number(match[2]),
+    day: Number(match[3])
+  };
+}
+
+function syncDateInputWithSelectedMonth() {
+  const parsed = parseDateParts(dateInput.value);
+  const alreadyInSelectedMonth = parsed && parsed.year === selectedYear && parsed.month === selectedMonth;
+  if (alreadyInSelectedMonth) {
+    return;
+  }
+
+  dateInput.value = formatLocalDate(getDefaultDateForMonth(selectedYear, selectedMonth));
 }
 
 function escapeHtml(value) {

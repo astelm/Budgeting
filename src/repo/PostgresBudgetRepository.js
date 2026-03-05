@@ -49,6 +49,15 @@ class PostgresBudgetRepository extends BudgetRepository {
             )
           `);
           await client.query(`
+            CREATE TABLE IF NOT EXISTS category_budgets (
+              category_id TEXT NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
+              month_key TEXT NOT NULL,
+              budget DOUBLE PRECISION NOT NULL DEFAULT 0,
+              changed_at TEXT NULL,
+              PRIMARY KEY (category_id, month_key)
+            )
+          `);
+          await client.query(`
             CREATE TABLE IF NOT EXISTS exchange_cache (
               id SMALLINT PRIMARY KEY CHECK (id = 1),
               rows_json JSONB NOT NULL DEFAULT '[]'::jsonb,
@@ -72,10 +81,11 @@ class PostgresBudgetRepository extends BudgetRepository {
   async readState() {
     await this.ensureSchema();
 
-    const [sectionsRes, categoriesRes, entriesRes, exchangeRes] = await Promise.all([
+    const [sectionsRes, categoriesRes, entriesRes, categoryBudgetsRes, exchangeRes] = await Promise.all([
       this.pool.query("SELECT id, name FROM sections ORDER BY id"),
       this.pool.query("SELECT id, name, type, section_id, budget FROM categories ORDER BY name"),
       this.pool.query("SELECT id, date::text AS date, type, category_id, category, description, amount, payment_method FROM entries ORDER BY date DESC, id DESC"),
+      this.pool.query("SELECT category_id, month_key, budget, changed_at FROM category_budgets ORDER BY category_id, month_key"),
       this.pool.query("SELECT rows_json, fetched_at, updated_at FROM exchange_cache WHERE id = 1")
     ]);
 
@@ -98,6 +108,12 @@ class PostgresBudgetRepository extends BudgetRepository {
         amount: Number(row.amount) || 0,
         paymentMethod: row.payment_method
       })),
+      categoryBudgets: categoryBudgetsRes.rows.map((row) => ({
+        categoryId: row.category_id,
+        monthKey: row.month_key,
+        budget: Number(row.budget) || 0,
+        changedAt: row.changed_at || null
+      })),
       exchangeCache: exchangeRes.rowCount
         ? {
             rows: Array.isArray(exchangeRes.rows[0].rows_json) ? exchangeRes.rows[0].rows_json : [],
@@ -119,6 +135,7 @@ class PostgresBudgetRepository extends BudgetRepository {
       await client.query("BEGIN");
 
       await client.query("DELETE FROM entries");
+      await client.query("DELETE FROM category_budgets");
       await client.query("DELETE FROM categories");
       await client.query("DELETE FROM sections");
 
@@ -137,6 +154,13 @@ class PostgresBudgetRepository extends BudgetRepository {
         await client.query(
           "INSERT INTO entries (id, date, type, category_id, category, description, amount, payment_method) VALUES ($1, $2::date, $3, $4, $5, $6, $7, $8)",
           [entry.id, entry.date, entry.type, entry.categoryId, entry.category, entry.description, entry.amount, entry.paymentMethod]
+        );
+      }
+
+      for (const item of state.categoryBudgets || []) {
+        await client.query(
+          "INSERT INTO category_budgets (category_id, month_key, budget, changed_at) VALUES ($1, $2, $3, $4)",
+          [item.categoryId, item.monthKey, item.budget, item.changedAt || null]
         );
       }
 

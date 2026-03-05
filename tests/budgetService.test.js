@@ -40,6 +40,28 @@ test("builds monthly board totals and differences", async () => {
   await fs.unlink(tempFile);
 });
 
+test("category budgets are stored per month and resolved by selected month", async () => {
+  const { service, tempFile } = await createServiceWithState({
+    sections: [{ id: "fixed", name: "FIXED" }],
+    categories: [{ id: "c-rent", name: "Rent", type: "expense", sectionId: "fixed", budget: 1000 }],
+    entries: [],
+    categoryBudgets: []
+  });
+
+  await service.updateCategoryBudget("c-rent", { budget: 1200, monthKey: "2026-03" });
+  await service.updateCategoryBudget("c-rent", { budget: 1300, monthKey: "2026-04" });
+
+  const march = await service.getBootstrap({ year: 2026, month: 3 });
+  const april = await service.getBootstrap({ year: 2026, month: 4 });
+  const may = await service.getBootstrap({ year: 2026, month: 5 });
+
+  assert.equal(march.board.sections[0].rows[0].budget, 1200);
+  assert.equal(april.board.sections[0].rows[0].budget, 1300);
+  assert.equal(may.board.sections[0].rows[0].budget, 1000);
+
+  await fs.unlink(tempFile);
+});
+
 test("renaming category updates entries", async () => {
   const { service, tempFile } = await createServiceWithState({
     sections: [{ id: "variable", name: "VARIABLE" }],

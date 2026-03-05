@@ -181,6 +181,7 @@ class BudgetService {
   async updateCategoryBudget(categoryId, payload) {
     const state = await this.repository.readState();
     const budget = Number(payload.budget);
+    const selectedMonth = this.getMonthKeyFromPayload(payload);
     const category = state.categories.find((item) => item.id === categoryId);
 
     if (!category) {
@@ -191,9 +192,30 @@ class BudgetService {
       throw new AppError("VALIDATION_ERROR", "Budget must be 0 or greater.", { field: "budget" });
     }
 
-    category.budget = Number(budget.toFixed(2));
+    state.categoryBudgets = Array.isArray(state.categoryBudgets) ? state.categoryBudgets : [];
+    const normalizedBudget = Number(budget.toFixed(2));
+    const changedAt = new Date().toISOString();
+    const existing = state.categoryBudgets.find((item) => item.categoryId === category.id && item.monthKey === selectedMonth);
+
+    if (existing) {
+      existing.budget = normalizedBudget;
+      existing.changedAt = changedAt;
+    } else {
+      state.categoryBudgets.push({
+        categoryId: category.id,
+        monthKey: selectedMonth,
+        budget: normalizedBudget,
+        changedAt
+      });
+    }
+
     await this.repository.writeState(state);
-    return category;
+    return {
+      ...category,
+      budget: normalizedBudget,
+      monthKey: selectedMonth,
+      changedAt
+    };
   }
 
   async deleteCategory(categoryId) {
@@ -221,6 +243,7 @@ class BudgetService {
     }
 
     state.categories = state.categories.filter((item) => item.id !== category.id);
+    state.categoryBudgets = (state.categoryBudgets || []).filter((item) => item.categoryId !== category.id);
     await this.repository.writeState(state);
 
     return {
@@ -442,6 +465,7 @@ class BudgetService {
         .sort((a, b) => a.name.localeCompare(b.name));
 
       const metrics = rows.map((row) => {
+        const budget = this.resolveCategoryBudget(state, row, selectedMonth);
         const actual = state.entries
           .filter((entry) => monthKey(entry.date) === selectedMonth)
           .filter((entry) => {
@@ -457,9 +481,9 @@ class BudgetService {
           name: row.name,
           type: row.type,
           sectionId: row.sectionId,
-          budget: row.budget,
+          budget,
           actual,
-          difference: Number((row.budget - actual).toFixed(2))
+          difference: Number((budget - actual).toFixed(2))
         };
       });
 
@@ -496,6 +520,35 @@ class BudgetService {
         usdToUahRate: usdToUahRate || null
       }
     };
+  }
+
+  getMonthKeyFromPayload(payload) {
+    const monthKeyPayload = String(payload.monthKey || "").trim();
+    if (monthKeyPayload) {
+      if (!/^\d{4}-\d{2}$/.test(monthKeyPayload)) {
+        throw new AppError("VALIDATION_ERROR", "Valid monthKey is required (YYYY-MM).", { field: "monthKey" });
+      }
+      return monthKeyPayload;
+    }
+
+    if (payload.year !== undefined && payload.month !== undefined) {
+      return getMonthKeyFromYearMonth(payload.year, payload.month);
+    }
+
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  }
+
+  resolveCategoryBudget(state, category, selectedMonth) {
+    const monthlyBudget = (state.categoryBudgets || []).find(
+      (item) => item.categoryId === category.id && item.monthKey === selectedMonth
+    );
+
+    if (monthlyBudget) {
+      return monthlyBudget.budget;
+    }
+
+    return category.budget;
   }
 
   ensureFallbackExpenseCategory(state, sectionId, categoryToDeleteId) {

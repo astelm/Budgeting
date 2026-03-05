@@ -35,10 +35,10 @@ window.BudgetApi = {
     });
   },
 
-  updateCategoryBudget(id, budget) {
+  updateCategoryBudget(id, budget, monthKey) {
     return requestJson(`/api/categories/${encodeURIComponent(id)}/budget`, {
       method: "PATCH",
-      body: JSON.stringify({ budget })
+      body: JSON.stringify({ budget, monthKey })
     });
   },
 

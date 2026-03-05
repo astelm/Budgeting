@@ -31,6 +31,7 @@ const emptyState = {
   entries: [],
   sections: defaultSections,
   categories: defaultCategories,
+  categoryBudgets: [],
   exchangeCache: {
     rows: [],
     fetchedAt: 0,
