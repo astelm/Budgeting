@@ -1,3 +1,4 @@
+require("dotenv").config();
 const path = require("node:path");
 const { JsonFileBudgetRepository } = require("../src/repo/JsonFileBudgetRepository");
 const { PostgresBudgetRepository } = require("../src/repo/PostgresBudgetRepository");
